@@ -1,0 +1,4 @@
+topic,messages,raw_bytes_total,raw_bytes_avg,zlib_no_dict_total,zlib_no_dict_avg,zlib_global_dict_total,zlib_global_dict_avg,zlib_topic_dict_total,zlib_topic_dict_avg
+camera_front,100,75977,759.77,32029,320.29,18614,186.14,18614,186.14
+camera_left,100,76860,768.6,32306,323.06,21329,213.29,18879,188.79
+camera_right,100,79537,795.37,33081,330.81,22093,220.93,19437,194.37

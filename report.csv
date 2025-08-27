@@ -1,0 +1,5 @@
+method,total_messages,raw_bytes_per_msg,compressed_bytes_per_msg,total_raw_bytes,total_comp_bytes,compression_ratio
+direct_raw,100,219.0,219.0,21900,21900,1.0
+normalized_raw,100,146.0,146.0,14600,14600,1.0
+zlib,100,146.0,1.87,14600,187,0.012808219178082192
+zlib_with_dict,100,146.0,0.74,14600,74,0.005068493150684932

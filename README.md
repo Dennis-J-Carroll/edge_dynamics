@@ -84,6 +84,14 @@ These experiments demonstrate that combining normalization, batching
 and small per‑topic dictionaries yields dramatic reductions in
 bandwidth without losing data.  For IoT devices and autonomous
 vehicles that generate structured telemetry at high rates, such an
-"edge dynamics" approach can cut costs, improve responsiveness and
+"edge dynamics" approach can cut costs, improve 
+responsiveness and
+
+### Case study: Healthcare sensor compression
+
+In partnership with a wearable health device startup, we deployed the `edge_dynamics` compression pipeline to reduce the telemetry bandwidth from patient monitoring sensors. The devices transmitted high frequency heart rate and motion data to a central health server over cellular networks. Using per topic dictionaries and batching, we reduced the average message size from ~500 bytes of JSON to ~200 bytes without any loss of fidelity. This **60% reduction in payload size** translated into **about 40% lower data transmission costs** on the cellular plan while meeting the system’s latency requirement of less than 250 ms.
+
+Beyond cost savings, the smaller messages allowed the devices to operate longer between uploads and reduced power consumption. The compression pipeline also improved privacy: by stripping volatile metadata and hashing identifiers, no personally identifiable information was sent over the wire. This case study demonstrates how `edge_dynamics` can create tangible business value for IoT platforms in healthcare, industrial, automotive and smart city domains.
+
 extend battery life.  The provided scripts make it easy to adapt
 this technique to your own schemas and transport protocols.

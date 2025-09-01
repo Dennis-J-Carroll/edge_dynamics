@@ -26,21 +26,21 @@ latency.
 
 ```
 edge_dynamics/
-├── README.md             This file
-├── edge_agent.py         Example edge agent that batches and compresses per topic
-├── collector_server.py   Collector that receives compressed frames and writes JSONL
-├── train_dict.py         Script to train per‑topic dictionaries from sample data
-├── proxy.py              Prototype HTTP proxy used in the initial tests
-├── collector.py          Matching collector for the proxy prototype
-├── run_demo.sh           Bash script to reproduce the initial HTTP demo
-├── dict_local            Dictionary produced by the HTTP demo
-├── report.csv            Compression ratios for the HTTP demo
-├── compression_per_msg.png Chart visualising per‑message compression for the HTTP demo
-├── topic_dict_report.csv  CSV comparing global vs. per‑topic dictionaries for file metadata
-├── topic_dict_comparison.png Chart showing per‑topic vs. global dictionary performance
-├── self_driving_bbox_compression.csv CSV summarising compression on synthetic bounding‑box metadata
-├── self_driving_compression_chart.png Chart for the bounding‑box experiment
-└── recv.jsonl            Example reconstructed output from the HTTP demo
+├── README.md                             This file
+├── edge_agent.py                         Example edge agent that batches and compresses per topic
+├── collector_server.py                   Collector that receives compressed frames and writes JSONL
+├── train_dict.py                         Script to train per‑topic dictionaries from sample data
+├── proxy.py                              Prototype HTTP proxy used in the initial tests
+├── collector.py                          Matching collector for the proxy prototype
+├── run_demo.sh                           Bash script to reproduce the initial HTTP demo
+├── dict_local                            Dictionary produced by the HTTP demo
+├── report.csv                            Compression ratios for the HTTP demo
+├── compression_per_msg.png               Chart visualising per‑message compression for the HTTP demo
+├── topic_dict_report.csv                 CSV comparing global vs. per‑topic dictionaries for file metadata
+├── topic_dict_comparison.png             Chart showing per‑topic vs. global dictionary performance
+├── self_driving_bbox_compression.csv     CSV summarising compression on synthetic bounding‑box metadata
+├── self_driving_compression_chart.png    Chart for the bounding‑box experiment
+└── recv.jsonl                            Example reconstructed output from the HTTP demo
 ```
 
 ## Summary of findings

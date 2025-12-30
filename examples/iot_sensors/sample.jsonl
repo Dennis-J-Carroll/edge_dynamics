@@ -1,0 +1,5 @@
+{"sensor_id":"temp-01","type":"temperature","value":22.5,"unit":"celsius","timestamp":1640000000,"location":"room-a"}
+{"sensor_id":"temp-02","type":"temperature","value":23.1,"unit":"celsius","timestamp":1640000001,"location":"room-b"}
+{"sensor_id":"humid-01","type":"humidity","value":45.2,"unit":"percent","timestamp":1640000002,"location":"room-a"}
+{"sensor_id":"motion-01","type":"motion","value":1,"unit":"boolean","timestamp":1640000003,"location":"hallway"}
+{"sensor_id":"temp-01","type":"temperature","value":22.7,"unit":"celsius","timestamp":1640000010,"location":"room-a"}

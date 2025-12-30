@@ -31,7 +31,7 @@ import struct
 import threading
 import time
 from collections import defaultdict, deque
-from typing import Deque, Dict, Optional
+from typing import Any, Deque, Dict, Optional, Union
 
 import ujson  # type: ignore
 import zstandard as zstd
@@ -78,7 +78,7 @@ class EdgeAgent:
     def __init__(self) -> None:
         self.dict_index = load_dictionaries()
         self.compressors = build_compressors(self.dict_index)
-        self.buffers: Dict[str, Dict[str, Optional[float] or Deque[bytes]]] = defaultdict(
+        self.buffers: Dict[str, Dict[str, Any]] = defaultdict(
             lambda: {"q": deque(), "t0": None}
         )
         self.lock = threading.Lock()

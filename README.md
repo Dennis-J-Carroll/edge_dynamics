@@ -7,6 +7,47 @@ of data transmitted from IoT devices, industrial sensors or self‑driving cars
 to a central collector, without sacrificing fidelity or adding unacceptable
 latency.
 
+## Installation
+
+### Prerequisites
+
+- Python 3.10 or higher
+- pip (Python package manager)
+
+### Quick start
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/edge_dynamics.git
+   cd edge_dynamics
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run the demo:
+   ```bash
+   ./run_demo.sh
+   ```
+
+### Manual setup
+
+For production use, install in a virtual environment:
+
+```bash
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Verify installation
+python3 -c "import zstandard, ujson; print('Dependencies OK')"
+```
+
 ## Key ideas
 
 1. **Normalize payloads** by stripping volatile fields (such as trace IDs) and
@@ -84,8 +125,9 @@ These experiments demonstrate that combining normalization, batching
 and small per‑topic dictionaries yields dramatic reductions in
 bandwidth without losing data.  For IoT devices and autonomous
 vehicles that generate structured telemetry at high rates, such an
-"edge dynamics" approach can cut costs, improve 
-responsiveness and
+"edge dynamics" approach can cut costs, improve responsiveness and
+extend battery life.  The provided scripts make it easy to adapt
+this technique to your own schemas and transport protocols.
 
 ### Case study: Healthcare sensor compression
 
@@ -93,5 +135,3 @@ In partnership with a wearable health device startup, we deployed the `edge_dyna
 
 Beyond cost savings, the smaller messages allowed the devices to operate longer between uploads and reduced power consumption. The compression pipeline also improved privacy: by stripping volatile metadata and hashing identifiers, no personally identifiable information was sent over the wire. This case study demonstrates how `edge_dynamics` can create tangible business value for IoT platforms in healthcare, industrial, automotive and smart city domains.
 
-extend battery life.  The provided scripts make it easy to adapt
-this technique to your own schemas and transport protocols.

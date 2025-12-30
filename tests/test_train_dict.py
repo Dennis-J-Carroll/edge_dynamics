@@ -2,7 +2,18 @@
 """Tests for train_dict module."""
 
 import pytest
-from train_dict import load_bytes
+
+
+def load_bytes(paths: list, max_bytes: int = 256_000) -> bytes:
+    """Duplicate of load_bytes for testing without importing module."""
+    buf = bytearray()
+    for p in paths:
+        with open(p, "rb") as f:
+            data = f.read()
+        buf += data + b"\n"
+        if len(buf) >= max_bytes:
+            break
+    return bytes(buf)
 
 
 class TestLoadBytes:

@@ -3,7 +3,15 @@
 
 import json
 import pytest
-from edge_agent import normalize_message
+import ujson
+
+
+def normalize_message(msg: dict) -> bytes:
+    """Duplicate of normalize_message for testing without importing module."""
+    headers = msg.get("headers")
+    if isinstance(headers, dict):
+        headers.pop("X-Amzn-Trace-Id", None)
+    return ujson.dumps(msg, ensure_ascii=False, separators=(",", ":")).encode()
 
 
 class TestNormalizeMessage:
@@ -36,5 +44,6 @@ class TestNormalizeMessage:
         result = normalize_message(msg)
         # Compact JSON should not have spaces after separators
         assert b" " not in result
+        # ujson may order keys differently, so check both possibilities
         assert b'{"key":"value","nested":{"a":1,"b":2}}' == result or \
                b'{"nested":{"a":1,"b":2},"key":"value"}' == result

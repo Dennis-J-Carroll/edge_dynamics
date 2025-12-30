@@ -1,0 +1,11 @@
+# Core dependencies
+zstandard>=0.22.0
+ujson>=5.9.0
+
+# Development dependencies (optional)
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+# black>=23.0.0
+# ruff>=0.1.0
+# mypy>=1.8.0
+# pre-commit>=3.6.0

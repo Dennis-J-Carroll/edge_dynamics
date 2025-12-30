@@ -1,0 +1,5 @@
+{"file_type":"txt","path":"/var/log/app/events.txt","size":4096,"checksum":"a1b2c3d4","timestamp":1640000000}
+{"file_type":"txt","path":"/var/log/app/errors.txt","size":2048,"checksum":"e5f6g7h8","timestamp":1640000010}
+{"file_type":"csv","path":"/var/data/metrics.csv","size":8192,"checksum":"i9j0k1l2","timestamp":1640000020}
+{"file_type":"json","path":"/var/config/settings.json","size":1024,"checksum":"m3n4o5p6","timestamp":1640000030}
+{"file_type":"txt","path":"/var/log/app/access.txt","size":16384,"checksum":"q7r8s9t0","timestamp":1640000040}

@@ -26,7 +26,6 @@ import http.client
 import json
 import time
 import threading
-import subprocess  # retained for potential future use
 import zlib
 from urllib.parse import urlsplit
 

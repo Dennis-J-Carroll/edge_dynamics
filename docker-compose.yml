@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: Apache-2.0
+
+version: '3.8'
+
+services:
+  collector:
+    build:
+      context: .
+      target: collector
+    container_name: edge_collector
+    ports:
+      - "7000:7000"
+    volumes:
+      - ./dicts:/app/dicts:ro
+      - ./out:/app/out
+      - ./metrics.csv:/app/metrics.csv
+    environment:
+      - DICT_DIR=/app/dicts
+      - OUT_DIR=/app/out
+    networks:
+      - edge_network
+    restart: unless-stopped
+
+  edge-agent:
+    build:
+      context: .
+      target: edge-agent
+    container_name: edge_agent
+    depends_on:
+      - collector
+    volumes:
+      - ./dicts:/app/dicts:ro
+    environment:
+      - COLLECTOR_HOST=collector
+      - COLLECTOR_PORT=7000
+      - DICT_DIR=/app/dicts
+      - BATCH_MAX=100
+      - BATCH_MS=250
+      - COMPRESSION_LEVEL=7
+    networks:
+      - edge_network
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: .
+      target: proxy
+    container_name: edge_proxy
+    ports:
+      - "8080:8080"
+    depends_on:
+      - collector
+    volumes:
+      - ./dict_local:/app/dict_local:ro
+      - ./metrics.csv:/app/metrics.csv
+    environment:
+      - DICT_PATH=/app/dict_local
+      - COLLECTOR_HOST=collector
+      - COLLECTOR_PORT=7000
+      - BATCH_N=100
+      - BATCH_MS=2000
+    networks:
+      - edge_network
+    restart: unless-stopped
+
+  upstream:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: edge_upstream
+    command: python3 up.py
+    ports:
+      - "9000:9000"
+    networks:
+      - edge_network
+    restart: unless-stopped
+
+networks:
+  edge_network:
+    driver: bridge
+
+volumes:
+  dicts:
+  out:

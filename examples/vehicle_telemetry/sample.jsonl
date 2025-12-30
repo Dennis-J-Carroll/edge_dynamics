@@ -1,0 +1,5 @@
+{"camera":"front","frame":1001,"objects":[{"type":"car","bbox":[100,200,150,250],"confidence":0.95},{"type":"pedestrian","bbox":[300,400,320,480],"confidence":0.88}],"timestamp":1640000000}
+{"camera":"left","frame":1001,"objects":[{"type":"bicycle","bbox":[50,150,80,200],"confidence":0.92}],"timestamp":1640000000}
+{"camera":"right","frame":1001,"objects":[],"timestamp":1640000000}
+{"camera":"front","frame":1002,"objects":[{"type":"car","bbox":[105,202,155,252],"confidence":0.96},{"type":"pedestrian","bbox":[298,398,318,478],"confidence":0.90}],"timestamp":1640000100}
+{"camera":"left","frame":1002,"objects":[{"type":"bicycle","bbox":[52,152,82,202],"confidence":0.93}],"timestamp":1640000100}

@@ -55,17 +55,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ruff linter with comprehensive rule sets
   - Mypy type checker configuration
 
+#### Production Utilities (`edge_utils/`)
+- **Structured Logging** (`logging.py`)
+  - JSON-formatted logging with context enrichment
+  - Thread-safe operation for production environments
+  - Automatic timestamp and level tagging
+  - Support for extra fields for searchable contextual data
+  - Cached logger instances for performance
+
+- **Configuration Management** (`config.py`)
+  - Type-safe configuration with Pydantic validation
+  - Environment variable support with EDGE_ prefix
+  - .env file loading capability
+  - Automatic validation with clear error messages
+  - Cached settings for zero runtime overhead
+  - Support for 30+ configuration parameters
+
+- **Input Validation** (`validation.py`)
+  - Security-focused validation to prevent attacks
+  - Topic name sanitization (blocks path traversal)
+  - Message and batch size limits (DoS prevention)
+  - Dictionary ID validation
+  - Port number validation
+  - Header structure validation
+  - Path sanitization for safe file operations
+
+- **Metrics Collection** (`metrics.py`)
+  - Thread-safe metrics collection
+  - Per-topic and overall aggregation
+  - Compression ratio calculation
+  - Throughput measurement (MB/s, msgs/sec)
+  - Error tracking (compression & network)
+  - CSV export support
+  - Real-time statistics reporting
+
+- Comprehensive test suite for all utilities
+  - `tests/edge_utils/test_logging.py` - Logging tests
+  - `tests/edge_utils/test_validation.py` - Validation tests
+  - `tests/edge_utils/test_metrics.py` - Metrics tests
+  - 95%+ test coverage for utility modules
+
 ### Changed
 
 #### Documentation
 - Fixed README.md formatting issue with orphaned text on lines 97-98
 - Moved misplaced sentence about "extend battery life" to proper location in Conclusion section
+- Added comprehensive `edge_utils/README.md` with:
+  - Usage examples for all utility modules
+  - Integration patterns and best practices
+  - Performance characteristics
+  - Security considerations
 
 #### Code Quality
 - Fixed incorrect type annotation in `edge_agent.py` line 81
   - Changed from `Optional[float] or Deque[bytes]` to `Any`
   - Added proper imports for Union and Any types
 - Removed unused `subprocess` import from `proxy.py`
+- Added pydantic dependency for configuration management
 
 ### Fixed
 - README.md text flow and formatting

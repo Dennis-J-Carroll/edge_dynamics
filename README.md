@@ -18,7 +18,7 @@ latency.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/edge_dynamics.git
+   git clone https://github.com/Dennis-J-Carroll/edge_dynamics.git
    cd edge_dynamics
    ```
 
@@ -63,9 +63,40 @@ python3 -c "import zstandard, ujson; print('Dependencies OK')"
    understand the trade‑offs between latency, batch size and dictionary
    effectiveness.
 
-## Repository layout
+## Summary of findings
 
+### HTTP telemetry demo
+
+The `edge_demo` prototype captured 50 identical HTTP JSON responses and
+compressed them using zstd with and without a dictionary. Batching the
+responses provided additional repeated context for the compressor and
+significantly improved effective compression compared with compressing
+individual messages. Using small, per-topic dictionaries increased compression
+efficiency further and made decompression deterministic on the collector by
+referencing a `dict_id` per batch.
+
+For exact numeric results and the charts, see `report.csv`, `compression_per_msg.png`
+and `recv.jsonl` in the repository. These files contain the measured compression
+ratios and reconstructed output used to validate correctness and quantify
+bandwidth savings.
 ```
+*Key ideas*
+
+1. **Normalize payloads** by stripping volatile fields (such as trace IDs) and
+   serializing JSON with a canonical ordering.  This maximizes the overlap
+   between messages.
+2. **Batch multiple messages** together and flush either when a batch reaches
+   a certain size (e.g. 100 messages) or a timeout (e.g. 250 ms).  Batching
+   amortizes compression overhead and provides more context to exploit.
+3. **Use small per‑topic dictionaries** (4–8 KB) with zstd to capture the
+   repeating structure of each schema.  Each batch references its dictionary
+   via a `dict_id`, allowing the collector to decompress correctly.
+4. **Record metrics** at ingestion time to quantify bytes saved and
+   understand the trade‑offs between latency, batch size and dictionary
+   effectiveness.
+
+## Repository layout:
+
 edge_dynamics/
 ├── README.md                             This file
 ├── edge_agent.py                         Example edge agent that batches and compresses per topic

@@ -1,6 +1,7 @@
 # Core dependencies
 zstandard>=0.22.0
 ujson>=5.9.0
+pydantic>=2.0.0
 
 # Development dependencies (optional)
 # pytest>=7.4.0

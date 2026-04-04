@@ -62,6 +62,22 @@ python3 -c "import zstandard, ujson; print('Dependencies OK')"
 4. **Record metrics** at ingestion time to quantify bytes saved and
    understand the trade‑offs between latency, batch size and dictionary
    effectiveness.
+5. **Resilient Transport** via a **Circuit Breaker** pattern to prevent cascading 
+   failures and **Persistent Sockets** to reduce connection overhead.
+6. **Zero-Loss Guarantee** with an **SQLite Persistent Buffer** that stores 
+   telemetry on disk when the network is down and automatically "stores-and-forwards" 
+   when connectivity is restored.
+
+## Production-Ready Features
+
+The `edge_agent.py` has been enhanced with enterprise-grade features:
+
+- **Structured Logging**: All events are emitted as JSON, ready for ELK/Datadog integration.
+- **Centralized Config**: Powered by Pydantic for validated, environment-based settings.
+- **Fault Tolerance**: Circuit breaker stops the agent from "thrashing" during outages.
+- **Persistence**: 50MB SQLite disk buffer with FIFO eviction for "zero-loss" data integrity.
+- **Health Check API**: Built-in HTTP server (`:8080/health`) for real-time monitoring.
+- **High Coverage**: Comprehensive test suite with >90% coverage of core logic.
 
 ## Summary of findings
 

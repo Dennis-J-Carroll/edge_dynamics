@@ -136,9 +136,9 @@ recv.jsonl
 metrics.csv
 batch_local.jsonl
 samples_local/
-dicts/
 out/
 samples/
 *.zdict
 *.jsonl
 !examples/**/*.jsonl
+buffer.db

@@ -1,0 +1,14 @@
+{
+  "vehicle.telemetry": {
+    "dict_id": "id_vehicle_telemetry",
+    "path": "./dicts/vehicle.telemetry.dict"
+  },
+  "vehicle.bounding_boxes": {
+    "dict_id": "id_vehicle_bounding_boxes",
+    "path": "./dicts/vehicle.bounding_boxes.dict"
+  },
+  "sensor.engine": {
+    "dict_id": "id_sensor_engine",
+    "path": "./dicts/sensor.engine.dict"
+  }
+}

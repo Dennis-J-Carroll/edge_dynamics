@@ -3,7 +3,7 @@
 
 import pytest
 import time
-from edge_utils.circuit_breaker import CircuitBreaker, CircuitBreakerError, CircuitState
+from edge_dynamics.edge_utils.circuit_breaker import CircuitBreaker, CircuitBreakerError, CircuitState
 
 
 class TestCircuitBreaker:

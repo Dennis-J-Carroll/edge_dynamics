@@ -6,7 +6,7 @@ import logging
 from io import StringIO
 
 import pytest
-from edge_utils.logging import StructuredLogger, get_logger
+from edge_dynamics.edge_utils.logging import StructuredLogger, get_logger
 
 
 class TestStructuredLogger:

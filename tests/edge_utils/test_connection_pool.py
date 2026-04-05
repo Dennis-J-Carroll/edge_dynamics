@@ -5,7 +5,7 @@ import pytest
 import socket
 import threading
 import time
-from edge_utils.connection_pool import ConnectionPool
+from edge_dynamics.edge_utils.connection_pool import ConnectionPool
 
 
 class TestConnectionPool:

@@ -2,7 +2,7 @@
 """Tests for edge_utils.metrics module."""
 
 import pytest
-from edge_utils.metrics import Metrics, MetricsCollector, TopicMetrics
+from edge_dynamics.edge_utils.metrics import Metrics, MetricsCollector, TopicMetrics
 
 
 class TestMetrics:

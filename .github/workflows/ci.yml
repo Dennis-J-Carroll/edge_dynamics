@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   test:
@@ -15,49 +15,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
+    
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov black ruff mypy
-
-    - name: Lint with ruff
+        pip install -e ".[dev]"
+        
+    - name: Run pytest
       run: |
-        ruff check . || echo "Linting completed with warnings"
-
-    - name: Format check with black
-      run: |
-        black --check . || echo "Format check completed"
-
-    - name: Type check with mypy
-      run: |
-        mypy --ignore-missing-imports *.py || echo "Type check completed"
-
-    - name: Test with pytest
-      run: |
-        pytest tests/ -v || echo "Tests completed"
-
-  security:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install bandit safety
-
-    - name: Security check with bandit
-      run: |
-        bandit -r . -ll -i -x ./tests,./examples || echo "Security check completed"
+        pytest tests/ -v

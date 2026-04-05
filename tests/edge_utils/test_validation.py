@@ -2,7 +2,7 @@
 """Tests for edge_utils.validation module."""
 
 import pytest
-from edge_utils.validation import InputValidator, ValidationError
+from edge_dynamics.edge_utils.validation import InputValidator, ValidationError
 
 
 class TestTopicValidation:

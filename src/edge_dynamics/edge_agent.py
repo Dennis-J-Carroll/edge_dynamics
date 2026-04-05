@@ -38,10 +38,11 @@ import zstandard as zstd
 import psutil
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from config import get_settings
-from structured_logging import get_logger
-from circuit_breaker import CircuitBreaker, CircuitState
-from disk_buffer import DiskBuffer
+from edge_dynamics.config import get_settings
+from edge_dynamics.structured_logging import get_logger
+from edge_dynamics.circuit_breaker import CircuitBreaker, CircuitState
+from edge_dynamics.disk_buffer import DiskBuffer
+from edge_dynamics.security import sign_frame, create_client_context
 
 # Initialize configuration and logging
 settings = get_settings()
@@ -241,12 +242,27 @@ class EdgeAgent:
                         circuit_breaker=breaker_stats)
 
     def _get_sock(self) -> socket.socket:
-        """Return the cached TCP socket, creating a new one if needed."""
+        """Return the cached TCP socket, creating a new one if needed.
+
+        When ``settings.tls_enabled`` is True the raw TCP socket is
+        wrapped in an SSL/TLS layer before being cached.
+        """
         if self._sock is None:
-            self._sock = socket.create_connection(
-                (settings.collector_host, settings.collector_port), 
-                timeout=2
+            raw = socket.create_connection(
+                (settings.collector_host, settings.collector_port),
+                timeout=2,
             )
+            if settings.tls_enabled:
+                ctx = create_client_context(settings)
+                server_hostname = (
+                    settings.collector_host if settings.tls_check_hostname else None
+                )
+                self._sock = ctx.wrap_socket(raw, server_hostname=server_hostname)
+                logger.info("tls_connection_established",
+                            host=settings.collector_host,
+                            port=settings.collector_port)
+            else:
+                self._sock = raw
         return self._sock
 
     def _close_sock(self) -> None:
@@ -351,7 +367,16 @@ class EdgeAgent:
             "t0": msgs and (time.time()),
             "t1": time.time(),
         }
-        
+
+        # HMAC: sign the compressed payload and embed the signature
+        if settings.auth_enabled and settings.auth_secret_key:
+            header[settings.hmac_header_name] = sign_frame(
+                comp_payload,
+                settings.auth_secret_key,
+                algorithm=settings.hmac_algorithm,
+            )
+            header["hmac_algo"] = settings.hmac_algorithm
+
         hdr_bytes = json.dumps(header, separators=(",", ":")).encode()
         frame = struct.pack("!I", len(hdr_bytes)) + hdr_bytes + comp_payload
         
@@ -401,8 +426,13 @@ def synth_feed(agent: EdgeAgent) -> None:
             time.sleep(0.01) # ~100 msgs/s
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for the edge-agent console script."""
     agent = EdgeAgent()
     agent.start()
     # For demonstration, run the synthetic feeder
     synth_feed(agent)
+
+
+if __name__ == "__main__":
+    main()

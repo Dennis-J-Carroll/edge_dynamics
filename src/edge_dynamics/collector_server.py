@@ -26,14 +26,15 @@ from typing import Dict, IO, Tuple
 
 import zstandard as zstd
 
+from edge_dynamics.config import get_settings
+from edge_dynamics.security import verify_frame, create_server_context
 
-HOST, PORT = "0.0.0.0", 7000
-# Directory containing dictionaries and index
-DICT_DIR = os.path.join(os.path.dirname(__file__), "dicts")
-# Directory to write decompressed JSONL files
-OUT_DIR = os.path.join(os.path.dirname(__file__), "out")
-# CSV file to append metrics
-METRICS = os.path.join(os.path.dirname(__file__), "metrics.csv")
+# Load configuration (paths are CWD-relative by default, not __file__-relative)
+_settings = get_settings()
+HOST, PORT = "0.0.0.0", _settings.collector_port
+DICT_DIR = _settings.dict_dir
+OUT_DIR = _settings.out_dir
+METRICS = _settings.metrics_file
 
 
 def load_dictionaries() -> Tuple[Dict[str, dict], Dict[str, zstd.ZstdDecompressor]]:
@@ -114,11 +115,22 @@ def main() -> None:
                         decompressor = decompressors[dict_id]
                         decompressed = decompressor.decompress(comp_payload)
                     else:
-                        # Fallback for no compression/standard zstd
-                        # Note: Server currently expects a dictionary if dict_id is missing?
-                        # Let's handle dict_id="" as plain zstd if needed, 
-                        # but original code assumed dictionary.
-                        decompressed = comp_payload # Simple fallback
+                        decompressed = comp_payload  # Simple fallback
+
+                    # HMAC: verify the signature if auth is enabled
+                    if _settings.auth_enabled and _settings.auth_secret_key:
+                        sig_key = _settings.hmac_header_name
+                        signature = header.get(sig_key)
+                        algo = header.get("hmac_algo", _settings.hmac_algorithm)
+                        if not signature:
+                            print(f"[collector] REJECTED frame for {header.get('topic','?')}: "
+                                  f"missing HMAC signature (auth is required)")
+                            continue  # skip this frame
+                        if not verify_frame(comp_payload, signature,
+                                            _settings.auth_secret_key, algorithm=algo):
+                            print(f"[collector] REJECTED frame for {header.get('topic','?')}: "
+                                  f"HMAC verification failed")
+                            continue  # skip this frame
                         
                     # Write decompressed data to cached per-topic file handle
                     topic = header["topic"]
@@ -146,11 +158,24 @@ def main() -> None:
                     print(f"[collector] error: {exc}")
                     break
 
+    # TLS: wrap the server socket if enabled
+    ssl_ctx = None
+    if _settings.tls_enabled:
+        ssl_ctx = create_server_context(_settings)
+        print(f"[collector] TLS enabled (verify_client={_settings.tls_verify_client})")
+
     with socket.create_server((HOST, PORT), reuse_port=True) as srv:
         print(f"[collector] listening on {HOST}:{PORT}")
         with ThreadPoolExecutor(max_workers=4) as pool:
             while True:
                 conn, addr = srv.accept()
+                if ssl_ctx:
+                    try:
+                        conn = ssl_ctx.wrap_socket(conn, server_side=True)
+                    except Exception as exc:
+                        print(f"[collector] TLS handshake failed from {addr}: {exc}")
+                        conn.close()
+                        continue
                 pool.submit(handle_connection, conn)
 
 

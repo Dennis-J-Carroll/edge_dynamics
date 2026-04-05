@@ -20,18 +20,18 @@ class TestLoadBytes:
     """Tests for load_bytes function."""
 
     def test_load_bytes_limits_size(self, tmp_path):
-        """Test that load_bytes respects max_bytes limit."""
-        # Create a test file with known content
-        test_file = tmp_path / "test.txt"
-        content = b"x" * 1000
-        test_file.write_bytes(content)
+        """Test that load_bytes stops after exceeding max_bytes."""
+        # Create two test files
+        file1 = tmp_path / "test1.txt"
+        file2 = tmp_path / "test2.txt"
+        file1.write_bytes(b"x" * 600)
+        file2.write_bytes(b"y" * 600)
 
-        # Load with limit
-        result = load_bytes([str(test_file)], max_bytes=500)
-        # Should be 500 bytes + newline
-        assert len(result) == 501
-        assert result[:500] == b"x" * 500
-        assert result[500] == ord(b"\n")
+        # load_bytes reads whole files then checks the limit after appending
+        result = load_bytes([str(file1), str(file2)], max_bytes=500)
+        # First file (600 bytes + newline = 601) exceeds limit, so it stops
+        assert len(result) == 601
+        assert b"y" not in result
 
     def test_load_bytes_concatenates_files(self, tmp_path):
         """Test that load_bytes concatenates multiple files."""

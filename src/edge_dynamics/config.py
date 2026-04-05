@@ -63,11 +63,45 @@ class Settings(BaseSettings):
     # Security Configuration
     auth_enabled: bool = Field(
         default=False,
-        description="Enable authentication"
+        description="Enable HMAC authentication for frame signing"
     )
     auth_secret_key: Optional[str] = Field(
         default=None,
-        description="Secret key for HMAC authentication"
+        description="Secret key for HMAC authentication (hex-encoded)"
+    )
+    hmac_algorithm: str = Field(
+        default="sha256",
+        description="HMAC hash algorithm (sha256, sha384, sha512)"
+    )
+    hmac_header_name: str = Field(
+        default="hmac",
+        description="Key name for HMAC signature in frame header"
+    )
+
+    # TLS Configuration
+    tls_enabled: bool = Field(
+        default=False,
+        description="Enable TLS encryption for agent ↔ collector connections"
+    )
+    tls_cert_file: Optional[str] = Field(
+        default=None,
+        description="Path to TLS certificate file (PEM)"
+    )
+    tls_key_file: Optional[str] = Field(
+        default=None,
+        description="Path to TLS private key file (PEM)"
+    )
+    tls_ca_file: Optional[str] = Field(
+        default=None,
+        description="Path to CA bundle for verifying peer certificates"
+    )
+    tls_verify_client: bool = Field(
+        default=False,
+        description="Require client certificate on the collector (mutual TLS)"
+    )
+    tls_check_hostname: bool = Field(
+        default=True,
+        description="Verify server hostname matches certificate (agent-side)"
     )
     
     # Logging Configuration
@@ -162,6 +196,21 @@ class Settings(BaseSettings):
         """Validate secret key if auth is enabled."""
         if values.get("auth_enabled") and not v:
             raise ValueError("Secret key is required when auth is enabled")
+        return v
+
+    @validator("hmac_algorithm")
+    def validate_hmac_algorithm(cls, v):
+        """Validate HMAC algorithm is supported."""
+        allowed = {"sha256", "sha384", "sha512"}
+        if v not in allowed:
+            raise ValueError(f"HMAC algorithm must be one of {allowed}")
+        return v
+
+    @validator("tls_cert_file", "tls_key_file", "tls_ca_file", pre=False)
+    def validate_tls_paths(cls, v):
+        """Validate that TLS file paths exist if provided."""
+        if v is not None and not os.path.isfile(v):
+            raise ValueError(f"TLS file path does not exist: {v}")
         return v
     
     @validator("dict_dir", "out_dir")

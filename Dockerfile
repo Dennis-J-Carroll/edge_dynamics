@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
-# Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -10,35 +9,28 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Build dep for zstandard C extension
+RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 
-# Copy application code
-COPY *.py ./
+# Install Python package (pyproject.toml layout)
+COPY pyproject.toml .
+RUN pip install --no-cache-dir -e .
+
+COPY src/ src/
 COPY LICENSE README.md ./
 
-# Create directories for runtime data
-RUN mkdir -p /app/dicts /app/out /app/samples
+# Runtime directories
+RUN mkdir -p /app/dicts /app/out
 
-# Builder stage for dictionary training
-FROM base as dict-trainer
-ENTRYPOINT ["python3", "train_dict.py"]
-
-# Edge agent stage
-FROM base as edge-agent
-EXPOSE 7000
-ENTRYPOINT ["python3", "edge_agent.py"]
-
-# Collector server stage
-FROM base as collector
-EXPOSE 7000
-ENTRYPOINT ["python3", "collector_server.py"]
-
-# Proxy stage
-FROM base as proxy
+# ---------- Agent stage ----------
+FROM base AS edge-agent
 EXPOSE 8080
-ENTRYPOINT ["python3", "proxy.py"]
+CMD ["python", "-m", "edge_dynamics.edge_agent"]
 
-# Default stage runs the collector
-FROM collector as default
+# ---------- Collector stage ----------
+FROM base AS collector
+EXPOSE 7000
+CMD ["python", "-m", "edge_dynamics.collector_server"]
+
+# ---------- Default: collector ----------
+FROM collector AS default

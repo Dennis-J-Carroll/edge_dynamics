@@ -15,7 +15,7 @@ class TestStoreAndForward:
     
     def test_buffering_on_failure(self, isolated_agent, mock_socket):
         """Test that batches are buffered when sending fails."""
-        mock_socket.side_effect = Exception("Connection refused")
+        mock_socket.sendall.side_effect = Exception("Connection refused")
         
         agent = isolated_agent
         
@@ -104,28 +104,14 @@ class TestNormalizeMessage:
 class TestEdgeAgentInitialization:
     """Test EdgeAgent initialization and setup."""
     
-    @patch('edge_dynamics.edge_agent.load_dictionaries')
-    @patch('edge_dynamics.edge_agent.build_compressors')
-    def test_initialization_loads_dictionaries(self, mock_build, mock_load):
-        """Test that dictionaries are loaded during initialization."""
-        mock_dict_index = {
-            "files.txt": {"dict_id": "txt123", "path": "dicts/files.txt.dict"},
-            "files.csv": {"dict_id": "csv456", "path": "dicts/files.csv.dict"}
-        }
-        mock_compressors = {
-            "files.txt": {"dict_id": "txt123", "compressor": Mock()},
-            "files.csv": {"dict_id": "csv456", "compressor": Mock()}
-        }
-        
-        mock_load.return_value = mock_dict_index
-        mock_build.return_value = mock_compressors
-        
-        agent = EdgeAgent(enable_flush=False, enable_metrics=False, enable_health=False)
-        
-        assert agent.dict_index == mock_dict_index
-        assert agent.compressors == mock_compressors
-        mock_load.assert_called_once()
-        mock_build.assert_called_once_with(mock_dict_index)
+    def test_initialization_creates_dlm(self, isolated_agent):
+        """Test that DictionaryLifecycleManager is created during initialization."""
+        from edge_dynamics.edge_utils.dict_lifecycle import DictionaryLifecycleManager
+        assert hasattr(isolated_agent, "dlm")
+        assert isinstance(isolated_agent.dlm, DictionaryLifecycleManager)
+        # Backwards-compat stubs are empty dicts
+        assert isolated_agent.dict_index == {}
+        assert isolated_agent.compressors == {}
     
     def test_initialization_creates_buffers(self, isolated_agent):
         """Test that message buffers are properly initialized."""
@@ -170,10 +156,8 @@ class TestEdgeAgentBatching:
     @patch('edge_dynamics.edge_agent.EdgeAgent._flush_batch')
     def test_flush_triggered_by_timeout(self, mock_flush):
         """Test that batches flush after timeout even if not full."""
-        from edge_dynamics.config import Settings
         from edge_dynamics.edge_agent import settings
-        with patch('edge_dynamics.edge_agent.load_dictionaries'), patch('edge_dynamics.edge_agent.build_compressors'):
-            with patch.object(settings, 'batch_ms', 50):
+        with patch.object(settings, 'batch_ms', 50):
                 agent = EdgeAgent(enable_metrics=False, enable_health=False)
                 agent.start()
 
@@ -212,19 +196,18 @@ class TestEdgeAgentCompression:
 
     @patch('edge_dynamics.edge_agent.time.time')
     def test_compression_with_dictionary(self, mock_time, mock_socket, isolated_agent):
-        """Test compression using per-topic dictionary."""
+        """Test compression using per-topic dictionary via DLM."""
         mock_time.return_value = 1640995200.0
 
         mock_compressor = Mock()
         mock_compressor.compress.return_value = b"compressed_data"
 
         agent = isolated_agent
-        agent.compressors = {
-            "files.txt": {
-                "dict_id": "txt123",
-                "compressor": mock_compressor
-            }
-        }
+        # v2: inject compressor via DLM instead of agent.compressors
+        agent.dlm.get_compressor = Mock(return_value={
+            "dict_id": "txt123",
+            "compressor": mock_compressor,
+        })
 
         messages = [
             normalize_message({"data": f"test_{i}"})
@@ -235,14 +218,11 @@ class TestEdgeAgentCompression:
 
         raw_data = b'\n'.join(messages) + b'\n'
         mock_compressor.compress.assert_called_once_with(raw_data)
-
-        mock_socket.assert_called_once()
-        mock_socket.return_value.sendall.assert_called_once()
+        mock_socket.sendall.assert_called_once()
 
     def test_compression_without_dictionary(self, mock_socket, isolated_agent):
         """Test fallback when no dictionary is available for topic."""
         agent = isolated_agent
-        agent.compressors = {}
 
         messages = [
             normalize_message({"data": f"test_{i}"})
@@ -251,8 +231,7 @@ class TestEdgeAgentCompression:
 
         agent._flush_batch("unknown.topic", messages)
 
-        mock_socket.assert_called_once()
-        args, kwargs = mock_socket.return_value.sendall.call_args
+        args, _ = mock_socket.sendall.call_args
         frame = args[0]
 
         header_len = int.from_bytes(frame[:4], byteorder='big')
@@ -268,24 +247,23 @@ class TestIntegration:
     def test_full_pipeline_with_circuit_breaker(self, mock_socket):
         """Test full pipeline with circuit breaker protection."""
         from edge_dynamics.edge_agent import breaker as global_breaker
-        with patch('edge_dynamics.edge_agent.load_dictionaries'), patch('edge_dynamics.edge_agent.build_compressors'):
-            agent = EdgeAgent()
-            with patch.object(agent, '_health_server'):
-                agent.start()
-        
-                for i in range(10):
-                    msg = {
-                        "topic": "sensors.temperature",
-                        "value": 20.5 + (i * 0.1),
-                        "timestamp": time.time(),
-                        "device_id": f"sensor_{i % 3}"
-                    }
-                    agent.enqueue("sensors.temperature", msg)
-        
-                time.sleep(0.5)
-        
-                assert mock_socket.called
-        
-                stats = global_breaker.stats
-                assert stats["total_calls"] > 0
-            assert stats["state"] == "CLOSED"
+        agent = EdgeAgent()
+        with patch.object(agent, '_health_server'):
+            agent.start()
+
+            for i in range(10):
+                msg = {
+                    "topic": "sensors.temperature",
+                    "value": 20.5 + (i * 0.1),
+                    "timestamp": time.time(),
+                    "device_id": f"sensor_{i % 3}"
+                }
+                agent.enqueue("sensors.temperature", msg)
+
+            time.sleep(0.5)
+
+            assert mock_socket.sendall.called
+
+            stats = global_breaker.stats
+            assert stats["total_calls"] > 0
+        assert stats["state"] == "CLOSED"

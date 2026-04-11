@@ -68,16 +68,48 @@ python3 -c "import zstandard, ujson; print('Dependencies OK')"
    telemetry on disk when the network is down and automatically "stores-and-forwards" 
    when connectivity is restored.
 
+## Architecture: Five-Layer Stack
+
+| Layer | Component | What it does |
+|---|---|---|
+| **Enforcement** | `edge_sentinel` (eBPF/XDP) | Packet filtering, classification, and mirroring at NIC ingress |
+| **Intelligence** | `DictionaryLifecycleManager`, `BackpressureGate` | EMA drift detection, adaptive dict retraining, graduated backpressure |
+| **Observability** | Structured logging, `/health` endpoint, `metrics.csv` | Per-component stats, real-time health, historical CSV metrics |
+| **Trust** | `security.py` (mTLS + HMAC-SHA256) | mTLS agent↔collector, HMAC-first frame verification |
+| **Orchestration** | `ConnectionPool`, `DiskBuffer`, `CircuitBreaker` | Socket reuse, SQLite store-and-forward, auto-recovery |
+
+### Graduated Backpressure Response
+
+The `BackpressureGate` applies three tiers of congestion control:
+
+1. **Below soft limit** — direct pass-through, zero overhead
+2. **Between soft and hard limits** — proportional delay ramp (the "Minus One Principle": the difference signal drives response, not the absolute value)
+3. **At hard limit** — configurable strategy: `block` / `drop` / `raise`; `DiskBuffer` absorbs overflow in the `block` path, ensuring store-and-forward recovery when the network recovers
+
+### Health API
+
+The agent exposes a normalized JSON health endpoint at `:8080/health`:
+
+```json
+{
+  "status": "healthy",
+  "transport":    { "circuit_breaker": "closed", "collector_reachable": true, "pool_size": 3, "pool_reuse_ratio": 0.94 },
+  "compression":  { "ratio": 0.08, "bytes_saved": 45230, "messages_processed": 5120, "batch_count": 51, "active_dicts": 3 },
+  "backpressure": { "queue_depth": 4, "memory_percent": 32.1 },
+  "recovery":     { "buffered_frames": 0, "storage_migration": "sqlite" },
+  "security":     { "tls_enabled": false, "hmac_enabled": false }
+}
+```
+
 ## Production-Ready Features
 
-The `edge_agent.py` has been enhanced with enterprise-grade features:
-
 - **Structured Logging**: All events are emitted as JSON, ready for ELK/Datadog integration.
-- **Centralized Config**: Powered by Pydantic for validated, environment-based settings.
+- **Centralized Config**: Powered by Pydantic v2 for validated, environment-based settings.
 - **Fault Tolerance**: Circuit breaker stops the agent from "thrashing" during outages.
 - **Persistence**: 50MB SQLite disk buffer with FIFO eviction for "zero-loss" data integrity.
 - **Health Check API**: Built-in HTTP server (`:8080/health`) for real-time monitoring.
-- **High Coverage**: Comprehensive test suite with >90% coverage of core logic.
+- **Adaptive Compression**: DLM auto-retrains dictionaries on data drift — no manual tuning.
+- **High Coverage**: 146-test suite with >90% coverage of core logic.
 
 ## Summary of findings
 

@@ -7,6 +7,14 @@ from .validation import InputValidator, ValidationError
 from .metrics import Metrics, MetricsCollector
 from .circuit_breaker import CircuitBreaker, CircuitBreakerError, CircuitState
 from .connection_pool import ConnectionPool
+from .dict_lifecycle import (
+    DictionaryLifecycleManager,
+    DictionaryVersion,
+    RatioMonitor,
+    RatioEvent,
+    SampleBuffer,
+)
+from .backpressure import BackpressureGate, BackpressureError, BackpressureTimeout
 
 __all__ = [
     "get_logger",
@@ -20,4 +28,12 @@ __all__ = [
     "CircuitBreakerError",
     "CircuitState",
     "ConnectionPool",
+    "DictionaryLifecycleManager",
+    "DictionaryVersion",
+    "RatioMonitor",
+    "RatioEvent",
+    "SampleBuffer",
+    "BackpressureGate",
+    "BackpressureError",
+    "BackpressureTimeout",
 ]

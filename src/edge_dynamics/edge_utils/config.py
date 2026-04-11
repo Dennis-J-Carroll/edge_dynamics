@@ -15,11 +15,8 @@ import os
 from functools import lru_cache
 from typing import Optional
 
-try:
-    from pydantic import BaseSettings, Field, validator
-except ImportError:
-    # Fallback for older pydantic versions
-    from pydantic import BaseModel as BaseSettings, Field, validator
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -29,6 +26,13 @@ class Settings(BaseSettings):
     All settings can be overridden via environment variables with the
     EDGE_ prefix (e.g., EDGE_COLLECTOR_HOST=localhost).
     """
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="EDGE_",
+        case_sensitive=False,
+    )
 
     # Collector settings
     collector_host: str = Field(
@@ -78,32 +82,36 @@ class Settings(BaseSettings):
     enable_metrics: bool = Field(default=True, description="Enable metrics collection")
     enable_health_check: bool = Field(default=True, description="Enable health check endpoint")
 
-    @validator("compression_level")
+    @field_validator("compression_level")
+    @classmethod
     def validate_compression_level(cls, v: int) -> int:
         """Validate compression level is within acceptable range."""
         if not 1 <= v <= 22:
             raise ValueError("Compression level must be between 1 and 22")
         return v
 
-    @validator("log_level")
+    @field_validator("log_level", mode="before")
+    @classmethod
     def validate_log_level(cls, v: str) -> str:
-        """Validate log level is a known level."""
+        """Normalize and validate log level."""
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
-        v_upper = v.upper()
+        v_upper = str(v).upper()
         if v_upper not in valid_levels:
             raise ValueError(f"Log level must be one of: {', '.join(valid_levels)}")
         return v_upper
 
-    @validator("compression_codec")
+    @field_validator("compression_codec", mode="before")
+    @classmethod
     def validate_codec(cls, v: str) -> str:
-        """Validate compression codec is supported."""
+        """Normalize and validate compression codec."""
         valid_codecs = {"zstd", "zlib", "none"}
-        v_lower = v.lower()
+        v_lower = str(v).lower()
         if v_lower not in valid_codecs:
             raise ValueError(f"Codec must be one of: {', '.join(valid_codecs)}")
         return v_lower
 
-    @validator("dict_dir", "out_dir")
+    @field_validator("dict_dir", "out_dir")
+    @classmethod
     def create_directory_if_needed(cls, v: str) -> str:
         """Create directory if it doesn't exist."""
         if v and not os.path.exists(v):
@@ -112,14 +120,6 @@ class Settings(BaseSettings):
             except OSError:
                 pass  # Directory creation is optional
         return v
-
-    class Config:
-        """Pydantic configuration."""
-
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        env_prefix = "EDGE_"
-        case_sensitive = False
 
 
 @lru_cache()

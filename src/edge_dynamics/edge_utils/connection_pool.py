@@ -15,10 +15,11 @@ Example:
 
 import queue
 import socket
+import ssl
 import threading
 import time
 from contextlib import contextmanager
-from typing import Generator, Optional, Tuple
+from typing import Generator, Optional
 
 
 class ConnectionPool:
@@ -42,6 +43,7 @@ class ConnectionPool:
         max_size: int = 10,
         timeout: float = 2.0,
         max_idle_time: float = 300.0,
+        ssl_context: Optional[ssl.SSLContext] = None,
     ):
         """
         Initialize connection pool.
@@ -52,6 +54,9 @@ class ConnectionPool:
             max_size: Maximum connections in pool (default: 10)
             timeout: Socket timeout in seconds (default: 2.0)
             max_idle_time: Max time connection can be idle (default: 300s)
+            ssl_context: Optional SSLContext to wrap connections with TLS.
+                         When provided, each new connection is wrapped via
+                         ssl_context.wrap_socket() immediately after connect.
 
         Example:
             >>> pool = ConnectionPool("collector.example.com", 7000, max_size=5)
@@ -61,6 +66,7 @@ class ConnectionPool:
         self.max_size = max_size
         self.timeout = timeout
         self.max_idle_time = max_idle_time
+        self._ssl_context = ssl_context
 
         self._pool: queue.Queue = queue.Queue(maxsize=max_size)
         self._current_size = 0
@@ -70,17 +76,25 @@ class ConnectionPool:
 
     def _create_connection(self) -> socket.socket:
         """
-        Create a new socket connection.
+        Create a new socket connection, optionally wrapping with TLS.
 
         Returns:
-            Connected socket
+            Connected socket (plain or TLS-wrapped)
 
         Raises:
             socket.error: If connection fails
         """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(self.timeout)
-        sock.connect((self.host, self.port))
+        raw = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        raw.settimeout(self.timeout)
+        raw.connect((self.host, self.port))
+
+        if self._ssl_context is not None:
+            server_hostname = self.host if self._ssl_context.check_hostname else None
+            sock: socket.socket = self._ssl_context.wrap_socket(
+                raw, server_hostname=server_hostname
+            )
+        else:
+            sock = raw
 
         with self._lock:
             self._current_size += 1
@@ -99,18 +113,19 @@ class ConnectionPool:
             True if connection is alive, False otherwise
         """
         try:
-            # Use MSG_PEEK to check without consuming data
+            # Use MSG_PEEK to check without consuming data.
+            # Three possible outcomes on a non-blocking recv:
+            #   b""             → EOF, remote closed the connection → dead
+            #   BlockingIOError → no data pending, connection alive  → alive
+            #   bytes           → data pending (unusual), alive      → alive
             sock.setblocking(False)
             data = sock.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT)
             sock.setblocking(True)
-            # If we got data, connection is alive but has pending data (unusual)
-            return len(data) == 0
+            return len(data) > 0  # empty bytes = EOF = closed
         except BlockingIOError:
-            # No data available, connection is alive
             sock.setblocking(True)
-            return True
+            return True  # EAGAIN — idle but alive
         except (socket.error, OSError):
-            # Connection is dead
             return False
 
     def acquire(self) -> socket.socket:
@@ -156,10 +171,16 @@ class ConnectionPool:
             return sock
 
         except queue.Empty:
-            # No connections available, create new one if under limit
+            # No connections available, create new one if under limit.
+            # Check the condition under the lock but create the connection
+            # outside it — _create_connection() does its own lock for the
+            # counter increment and makes a blocking network call that must
+            # not be held under _lock (re-entrant deadlock).
             with self._lock:
-                if self._current_size < self.max_size:
-                    return self._create_connection()
+                can_create = self._current_size < self.max_size
+
+            if can_create:
+                return self._create_connection()
 
             # Pool is full, wait for connection to become available
             # This blocks until a connection is released

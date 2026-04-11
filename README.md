@@ -1,5 +1,7 @@
 # Edge Dynamics
-
+<p align="center">
+  <img src="assets/images/edgedynamics-logo.png" alt="EdgeDynamics logo" width="400" />
+</p>
 This repository contains a set of experiments, scripts and results that explore
 the viability of performing **edge‑side compression** using per‑topic
 dictionaries and batching.  The goal is to dramatically reduce the amount
